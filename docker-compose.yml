@@ -1,0 +1,68 @@
+version: "3.9"
+# SQLite + Redis — no Postgres container needed
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nudgeops_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nudgeops_backend
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///./nudgeops.db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: super_secret_key_change_in_production
+      ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - sqlite_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nudgeops_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nudgeops_worker
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///./nudgeops.db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: super_secret_key_change_in_production
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+      - sqlite_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=2
+
+volumes:
+  redis_data:
+  sqlite_data:

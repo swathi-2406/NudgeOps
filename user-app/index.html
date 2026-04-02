@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HabitFlow × NudgeOps Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0f14;
+  --surface:#16181f;
+  --surface2:#1e2029;
+  --border:#2a2d3a;
+  --border2:#363a4a;
+  --text:#eeeef2;
+  --text2:#8b8fa8;
+  --text3:#555870;
+  --accent:#6ee7b7;
+  --accent2:#34d399;
+  --purple:#a78bfa;
+  --coral:#fb7185;
+  --amber:#fbbf24;
+  --blue:#60a5fa;
+  --phone-bg:#111318;
+  --phone-surface:#191c25;
+  --phone-border:#252836;
+  --green:#4ade80;
+  --font-display:'Syne',sans-serif;
+  --font-body:'Nunito',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Top bar ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 32px;
+  border-bottom:1px solid var(--border);
+  background:rgba(14,15,20,0.95);
+  backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:100;
+}
+.topbar-logo{
+  font-family:var(--font-display);font-size:18px;font-weight:800;
+  display:flex;align-items:center;gap:10px;
+}
+.topbar-logo .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 8px var(--accent);
+}
+.topbar-tag{
+  font-family:var(--font-mono);font-size:11px;color:var(--text2);
+  background:var(--surface2);border:1px solid var(--border2);
+  padding:4px 10px;border-radius:20px;
+}
+.api-status{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:11px;color:var(--text2);
+}
+.api-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--text3);
+  transition:background 0.4s;
+}
+.api-dot.online{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.api-dot.error{background:var(--coral);}
+
+/* ── Main layout ── */
+.demo-layout{
+  display:grid;
+  grid-template-columns:1fr 420px 1fr;
+  gap:0;
+  min-height:calc(100vh - 57px);
+  align-items:start;
+  padding:40px 24px;
+  max-width:1400px;
+  margin:0 auto;
+}
+
+/* ── Phone frame ── */
+.phone-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  position:sticky;top:80px;
+}
+.phone-label{
+  font-family:var(--font-mono);font-size:11px;color:var(--text3);
+  letter-spacing:1px;text-transform:uppercase;
+}
+.phone-frame{
+  width:375px;height:720px;
+  background:var(--phone-bg);
+  border-radius:48px;
+  border:2px solid var(--border2);
+  overflow:hidden;
+  position:relative;
+  box-shadow:
+    0 0 0 6px #0a0b0e,
+    0 0 0 7px var(--border),
+    0 40px 80px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.phone-notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:120px;height:32px;
+  background:#0a0b0e;
+  border-radius:0 0 20px 20px;
+  z-index:10;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.phone-notch::after{
+  content:'';width:12px;height:12px;border-radius:50%;
+  background:#1a1c24;border:2px solid #252836;
+}
+.phone-screen{
+  width:100%;height:100%;overflow-y:auto;overflow-x:hidden;
+  scroll-behavior:smooth;
+  padding-top:40px;
+}
+.phone-screen::-webkit-scrollbar{display:none;}
+
+/* ── App inside phone ── */
+.app-header{
+  padding:20px 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.app-logo{
+  font-family:var(--font-display);font-size:22px;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--blue));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.app-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--purple),var(--coral));
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:white;cursor:pointer;
+  border:2px solid var(--phone-border);
+}
+
+/* User selector inside app */
+.user-selector{
+  margin:0 20px 16px;
+  background:var(--phone-surface);
+  border:1px solid var(--phone-border);
+  border-radius:12px;
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;
+}
+.user-selector select{
+  background:transparent;border:none;color:var(--text);
+  font-family:var(--font-body);font-size:13px;font-weight:600;
+  outline:none;cursor:pointer;width:100%;
+  -webkit-appearance:none;
+}
+.user-selector select option{background:#191c25;color:var(--text);}
+
+/* Date strip */
+.date-strip{
+  padding:0 20px 16px;
+  display:flex;gap:8px;overflow-x:auto;
+}
+.date-strip::-webkit-scrollbar{display:none;}
+.date-chip{
+  min-width:44px;height:64px;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:var(--phone-surface);border:1px solid var(--phone-border);
+  font-size:10px;color:var(--text2);cursor:pointer;
+  transition:all 0.2s;flex-shrink:0;
+}
+.date-chip.active{
+  background:linear-gradient(135deg,var(--accent2),var(--blue));
+  border-color:transparent;color:#0e0f14;
+}
+.date-chip .day-num{font-size:16px;font-weight:700;}
+
+/* Habits list */
+.section-label{
+  padding:0 20px 10px;
+  font-family:var(--font-display);font-size:13px;font-weight:600;
+  color:var(--text2);letter-spacing:0.5px;text-transform:uppercase;
+}
+.habit-card{
+  margin:0 20px 10px;
+  background:var(--phone-surface);
+  border:1px solid var(--phone-border);
+  border-radius:16px;
+  padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;
+  transition:all 0.18s;
+  position:relative;
+  overflow:hidden;
+}
+.habit-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--accent);border-radius:0 2px 2px 0;opacity:0;
+  transition:opacity 0.2s;
+}
+.habit-card.done::before{opacity:1;}
+.habit-card.done{border-color:rgba(110,231,183,0.2);background:rgba(110,231,183,0.04);}
+.habit-card:active{transform:scale(0.98);}
+.habit-icon{
+  width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.habit-info{flex:1;}
+.habit-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.habit-sub{font-size:11px;color:var(--text2);}
+.habit-check{
+  width:24px;height:24px;border-radius:50%;
+  border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;flex-shrink:0;
+}
+.habit-card.done .habit-check{
+  background:var(--accent2);border-color:var(--accent2);
+}
+.habit-check svg{opacity:0;transition:opacity 0.2s;}
+.habit-card.done .habit-check svg{opacity:1;}
+
+/* streak bar */
+.streak-bar{
+  margin:4px 20px 16px;
+  background:var(--phone-surface);
+  border:1px solid var(--phone-border);
+  border-radius:16px;
+  padding:14px 16px;
+  display:flex;align-items:center;gap:14px;
+}
+.streak-fire{font-size:28px;}
+.streak-info{flex:1;}
+.streak-num{
+  font-family:var(--font-display);font-size:24px;font-weight:800;
+  background:linear-gradient(90deg,var(--amber),var(--coral));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.streak-label{font-size:11px;color:var(--text2);}
+.streak-dots{display:flex;gap:4px;}
+.streak-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--phone-border);
+  transition:background 0.3s;
+}
+.streak-dot.filled{background:var(--amber);}
+
+/* ── NUDGE CARD (the star) ── */
+.nudge-zone{padding:0 20px 20px;}
+.nudge-card{
+  background:linear-gradient(135deg,#1a1f2e,#1e1a2e);
+  border:1px solid rgba(167,139,250,0.3);
+  border-radius:20px;
+  padding:18px;
+  position:relative;
+  overflow:hidden;
+}
+.nudge-card::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(167,139,250,0.15),transparent 70%);
+}
+.nudge-card-top{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
+}
+.nudge-badge{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  background:rgba(167,139,250,0.15);color:var(--purple);
+  padding:3px 8px;border-radius:20px;border:1px solid rgba(167,139,250,0.2);
+  text-transform:uppercase;letter-spacing:0.8px;
+}
+.nudge-strategy{
+  font-family:var(--font-mono);font-size:9px;color:var(--text3);
+}
+.nudge-message{
+  font-size:15px;font-weight:600;color:var(--text);
+  line-height:1.5;margin-bottom:14px;
+}
+.nudge-actions{display:flex;gap:8px;}
+.nudge-btn{
+  flex:1;padding:10px 0;border-radius:12px;border:none;
+  font-family:var(--font-body);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all 0.15s;
+}
+.nudge-btn-yes{background:var(--accent2);color:#0e0f14;}
+.nudge-btn-yes:hover{background:var(--accent);transform:translateY(-1px);}
+.nudge-btn-maybe{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.nudge-btn-no{background:rgba(251,113,133,0.1);color:var(--coral);border:1px solid rgba(251,113,133,0.2);}
+.nudge-btn:active{transform:scale(0.97);}
+
+.nudge-loading{
+  text-align:center;padding:20px 0;
+  font-family:var(--font-mono);font-size:12px;color:var(--text3);
+}
+.nudge-empty{
+  text-align:center;padding:16px 0;
+  font-size:12px;color:var(--text3);
+}
+.get-nudge-btn{
+  width:100%;padding:13px;border-radius:14px;border:1px solid rgba(110,231,183,0.3);
+  background:rgba(110,231,183,0.08);color:var(--accent);
+  font-family:var(--font-body);font-size:13px;font-weight:700;
+  cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.get-nudge-btn:hover{background:rgba(110,231,183,0.14);transform:translateY(-1px);}
+.get-nudge-btn:active{transform:scale(0.98);}
+
+/* toast inside phone */
+.phone-toast{
+  position:absolute;bottom:20px;left:16px;right:16px;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:14px;padding:12px 16px;
+  font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:10px;
+  transform:translateY(80px);opacity:0;
+  transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:20;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+.phone-toast.show{transform:translateY(0);opacity:1;}
+.phone-toast.success{border-color:rgba(74,222,128,0.3);color:var(--green);}
+.phone-toast.info{border-color:rgba(96,165,250,0.3);color:var(--blue);}
+
+/* ── Stats panel (right) ── */
+.stats-panel{
+  padding:0 0 0 32px;
+  display:flex;flex-direction:column;gap:16px;
+  position:sticky;top:80px;
+}
+.stats-heading{
+  font-family:var(--font-display);font-size:15px;font-weight:700;
+  color:var(--text2);letter-spacing:0.3px;
+  display:flex;align-items:center;gap:8px;
+}
+.live-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--coral);
+  animation:pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+.stat-block{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:16px;
+}
+.stat-block-title{
+  font-family:var(--font-mono);font-size:10px;color:var(--text3);
+  letter-spacing:0.8px;text-transform:uppercase;margin-bottom:12px;
+}
+
+/* Bandit arms visualization */
+.arm-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.arm-row:last-child{margin-bottom:0;}
+.arm-name{
+  font-size:11px;color:var(--text2);width:110px;flex-shrink:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.arm-bar-wrap{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.arm-bar{height:100%;border-radius:3px;transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1);}
+.arm-prob{
+  font-family:var(--font-mono);font-size:10px;width:34px;
+  text-align:right;color:var(--text2);flex-shrink:0;
+}
+.arm-pulls{
+  font-family:var(--font-mono);font-size:9px;color:var(--text3);width:24px;
+  text-align:right;flex-shrink:0;
+}
+.arm-row.best .arm-name{color:var(--accent);}
+.arm-row.best .arm-prob{color:var(--accent);}
+
+/* Last selection */
+.last-selection{
+  background:rgba(167,139,250,0.06);
+  border:1px solid rgba(167,139,250,0.15);
+  border-radius:12px;padding:12px 14px;
+}
+.last-sel-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;}
+.last-sel-type{
+  font-size:13px;font-weight:700;color:var(--purple);margin-bottom:2px;
+  font-family:var(--font-display);
+}
+.last-sel-reason{font-size:11px;color:var(--text3);font-family:var(--font-mono);}
+
+/* Feedback log */
+.feedback-log{
+  display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;
+}
+.feedback-log::-webkit-scrollbar{width:3px;}
+.feedback-log::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.feedback-entry{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:9px;
+  background:var(--surface2);
+  font-size:11px;
+}
+.fb-signal{
+  padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;
+  font-family:var(--font-mono);text-transform:uppercase;
+}
+.fb-completed{background:rgba(74,222,128,0.15);color:var(--green);}
+.fb-engaged{background:rgba(96,165,250,0.15);color:var(--blue);}
+.fb-ignored{background:rgba(139,143,168,0.15);color:var(--text2);}
+.fb-dismissed{background:rgba(251,191,36,0.15);color:var(--amber);}
+.fb-negative{background:rgba(251,113,133,0.15);color:var(--coral);}
+.fb-type{color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fb-reward{font-family:var(--font-mono);font-size:10px;margin-left:auto;}
+.fb-reward.pos{color:var(--green);}
+.fb-reward.neg{color:var(--coral);}
+.fb-reward.zero{color:var(--text3);}
+
+/* System metrics */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.metric-cell{
+  background:var(--surface2);border-radius:10px;padding:10px 12px;
+}
+.metric-val{
+  font-family:var(--font-display);font-size:20px;font-weight:800;
+  margin-bottom:2px;
+}
+.metric-label{font-size:10px;color:var(--text3);}
+
+/* empty state */
+.empty-log{
+  font-size:11px;color:var(--text3);text-align:center;
+  padding:20px 0;font-family:var(--font-mono);
+}
+
+/* ── Center column label ── */
+.center-label{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;padding-top:8px;gap:20px;
+}
+.arrow-connector{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-family:var(--font-mono);font-size:10px;color:var(--text3);
+}
+.arrow-line{
+  width:1px;height:60px;
+  background:linear-gradient(to bottom,var(--border),transparent);
+}
+.api-call-badge{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:5px 10px;
+  font-family:var(--font-mono);font-size:9px;color:var(--text3);
+  white-space:nowrap;
+}
+
+/* ── Animations ── */
+@keyframes fadeSlideUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.fade-in{animation:fadeSlideUp 0.3s ease forwards;}
+
+@keyframes shimmer{
+  0%{opacity:0.4}50%{opacity:0.8}100%{opacity:0.4}
+}
+.loading-shimmer{animation:shimmer 1.2s ease-in-out infinite;}
+
+/* reward flash */
+@keyframes rewardFlash{
+  0%{background:rgba(110,231,183,0.15)}
+  100%{background:transparent}
+}
+.reward-flash{animation:rewardFlash 0.8s ease forwards;}
+
+/* responsive */
+@media(max-width:1100px){
+  .demo-layout{grid-template-columns:1fr 375px 1fr;padding:24px 12px;}
+  .stats-panel{padding-left:20px;}
+}
+@media(max-width:900px){
+  .demo-layout{grid-template-columns:1fr;padding:20px;}
+  .phone-wrap{margin:0 auto;}
+  .stats-panel{padding:0;position:static;}
+  .center-label{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="dot"></div>
+    HabitFlow
+    <span style="font-weight:400;color:var(--text2);font-size:14px;">× NudgeOps</span>
+  </div>
+  <div class="topbar-tag">Live Demo — Contextual Bandit</div>
+  <div class="api-status">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiLabel">connecting...</span>
+  </div>
+</div>
+
+<div class="demo-layout">
+
+  <!-- ── LEFT: Phone ── -->
+  <div class="phone-wrap">
+    <div class="phone-label">User experience</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen" id="phoneScreen">
+
+        <!-- App header -->
+        <div class="app-header">
+          <div class="app-logo">HabitFlow</div>
+          <div class="app-avatar" id="avatarEl">AC</div>
+        </div>
+
+        <!-- User selector -->
+        <div class="user-selector">
+          <select id="userSelect" onchange="onUserChange()">
+            <option value="">Loading users...</option>
+          </select>
+        </div>
+
+        <!-- Date strip -->
+        <div class="date-strip" id="dateStrip"></div>
+
+        <!-- Streak -->
+        <div class="streak-bar">
+          <div class="streak-fire">🔥</div>
+          <div class="streak-info">
+            <div class="streak-num" id="streakNum">—</div>
+            <div class="streak-label">day streak</div>
+          </div>
+          <div class="streak-dots" id="streakDots"></div>
+        </div>
+
+        <!-- Habits -->
+        <div class="section-label">Today's Habits</div>
+        <div id="habitsList"></div>
+
+        <!-- Nudge zone -->
+        <div class="section-label" style="margin-top:8px;">AI Nudge</div>
+        <div class="nudge-zone">
+          <div id="nudgeArea">
+            <button class="get-nudge-btn" onclick="getNudge()">
+              <span>✦</span> Get personalized nudge
+            </button>
+          </div>
+        </div>
+
+        <div style="height:20px;"></div>
+      </div><!-- phone-screen -->
+
+      <!-- Toast -->
+      <div class="phone-toast" id="phoneToast"></div>
+    </div><!-- phone-frame -->
+    <div class="phone-label" style="margin-top:4px;">tap habits · get nudge · react</div>
+  </div>
+
+  <!-- ── CENTER: API connector ── -->
+  <div class="center-label">
+    <div style="height:120px;"></div>
+    <div class="arrow-connector">
+      <div class="api-call-badge">POST /bandit/nudge</div>
+      <div class="arrow-line"></div>
+      <span>←→</span>
+      <div class="arrow-line" style="background:linear-gradient(to top,var(--border),transparent);"></div>
+      <div class="api-call-badge">POST /bandit/feedback</div>
+    </div>
+    <div style="height:40px;"></div>
+    <div class="arrow-connector">
+      <div class="api-call-badge">GET /monitoring/metrics</div>
+      <div class="arrow-line"></div>
+      <span>↓ live</span>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Stats panel ── -->
+  <div class="stats-panel">
+    <div class="stats-heading">
+      <div class="live-dot"></div>
+      NudgeOps — Live Bandit State
+    </div>
+
+    <!-- Current user info -->
+    <div class="stat-block" id="userInfoBlock">
+      <div class="stat-block-title">Current user</div>
+      <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text);" id="statUserName">—</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;" id="statUserId">select a user</div>
+      <div style="margin-top:8px;" id="statUserSegment"></div>
+    </div>
+
+    <!-- Bandit arm probabilities -->
+    <div class="stat-block">
+      <div class="stat-block-title">Arm success probabilities  ·  α/(α+β)</div>
+      <div id="armBars">
+        <div class="empty-log">Select a user to see arm states</div>
+      </div>
+    </div>
+
+    <!-- Last selection -->
+    <div class="stat-block" id="lastSelBlock" style="display:none;">
+      <div class="stat-block-title">Last selection</div>
+      <div class="last-selection">
+        <div class="last-sel-label">INTERVENTION TYPE</div>
+        <div class="last-sel-type" id="lastSelType">—</div>
+        <div class="last-sel-reason" id="lastSelReason">—</div>
+      </div>
+    </div>
+
+    <!-- Feedback log -->
+    <div class="stat-block">
+      <div class="stat-block-title">Feedback log  ·  this session</div>
+      <div class="feedback-log" id="feedbackLog">
+        <div class="empty-log">No feedback yet</div>
+      </div>
+    </div>
+
+    <!-- System metrics -->
+    <div class="stat-block">
+      <div class="stat-block-title">System metrics</div>
+      <div class="metrics-grid">
+        <div class="metric-cell">
+          <div class="metric-val" id="mTotal" style="color:var(--accent);">—</div>
+          <div class="metric-label">Total nudges</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-val" id="m24h" style="color:var(--blue);">—</div>
+          <div class="metric-label">Last 24h</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-val" id="mCompletion" style="color:var(--green);">—</div>
+          <div class="metric-label">Completion</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-val" id="mNegative" style="color:var(--coral);">—</div>
+          <div class="metric-label">Negative rate</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- stats-panel -->
+</div><!-- demo-layout -->
+
+<script>
+const API = 'http://localhost:8000/api/v1';
+
+// ── State ──
+let currentUser = null;
+let currentNudgeLog = null;
+let feedbackHistory = [];
+let allUsers = [];
+let metricsInterval = null;
+let armInterval = null;
+
+// ── Habit data (fake, for UI) ──
+const HABITS = [
+  {id:'h1', name:'Morning meditation', sub:'10 min · mindfulness', icon:'🧘', color:'#a78bfa', done:false},
+  {id:'h2', name:'Read 20 pages',      sub:'books · knowledge',   icon:'📖', color:'#60a5fa', done:false},
+  {id:'h3', name:'Drink 8 glasses',    sub:'hydration · health',  icon:'💧', color:'#34d399', done:false},
+  {id:'h4', name:'Evening walk',       sub:'30 min · outdoors',   icon:'🚶', color:'#fbbf24', done:false},
+  {id:'h5', name:'No phone after 10',  sub:'sleep hygiene',       icon:'📵', color:'#fb7185', done:false},
+];
+let habitState = HABITS.map(h => ({...h}));
+
+// ── ARM COLOR MAP ──
+const ARM_COLORS = {
+  streak_tracker:           '#fbbf24',
+  public_accountability:    '#60a5fa',
+  dark_humor_reminder:      '#fb7185',
+  loss_framing:             '#f97316',
+  positive_reinforcement:   '#4ade80',
+  social_proof:             '#a78bfa',
+  implementation_intention: '#34d399',
+  progress_visualization:   '#38bdf8',
+  commitment_device:        '#e879f9',
+  micro_challenge:          '#facc15',
+};
+
+const SIGNAL_LABELS = {
+  completed:'completed', engaged:'engaged', ignored:'ignored',
+  dismissed:'dismissed', negative:'negative'
+};
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  buildDateStrip();
+  renderHabits();
+  checkAPI();
+  loadUsers();
+  startMetricsPolling();
+});
+
+// ── API health ──
+async function checkAPI(){
+  try{
+    const r = await fetch('http://localhost:8000/health', {signal:AbortSignal.timeout(3000)});
+    const ok = r.ok;
+    document.getElementById('apiDot').className = 'api-dot ' + (ok ? 'online' : 'error');
+    document.getElementById('apiLabel').textContent = ok ? 'API online' : 'API error';
+  } catch(e){
+    document.getElementById('apiDot').className = 'api-dot error';
+    document.getElementById('apiLabel').textContent = 'API offline';
+  }
+}
+
+// ── Date strip ──
+function buildDateStrip(){
+  const strip = document.getElementById('dateStrip');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today = new Date();
+  strip.innerHTML = '';
+  for(let i = -3; i <= 3; i++){
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const chip = document.createElement('div');
+    chip.className = 'date-chip' + (i === 0 ? ' active' : '');
+    chip.innerHTML = `<span style="font-size:9px">${days[d.getDay()]}</span><span class="day-num">${d.getDate()}</span>`;
+    chip.onclick = () => {
+      strip.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    };
+    strip.appendChild(chip);
+  }
+}
+
+// ── Streak ──
+function updateStreak(n){
+  document.getElementById('streakNum').textContent = n;
+  const dots = document.getElementById('streakDots');
+  dots.innerHTML = '';
+  for(let i = 0; i < 7; i++){
+    const d = document.createElement('div');
+    d.className = 'streak-dot' + (i < n % 7 || n >= 7 ? ' filled' : '');
+    dots.appendChild(d);
+  }
+}
+
+// ── Habits ──
+function renderHabits(){
+  const list = document.getElementById('habitsList');
+  list.innerHTML = habitState.map(h => `
+    <div class="habit-card ${h.done ? 'done' : ''}" id="habit-${h.id}" onclick="toggleHabit('${h.id}')">
+      <div class="habit-icon" style="background:${h.color}22;">${h.icon}</div>
+      <div class="habit-info">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-sub">${h.sub}</div>
+      </div>
+      <div class="habit-check">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2 6l3 3 5-5" stroke="#0e0f14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleHabit(id){
+  const h = habitState.find(h => h.id === id);
+  if(!h) return;
+  h.done = !h.done;
+  renderHabits();
+  const doneCount = habitState.filter(h => h.done).length;
+  updateStreak(doneCount * 2 + 3);
+  if(h.done) showToast(`✓ "${h.name}" completed!`, 'success');
+}
+
+// ── Load users ──
+async function loadUsers(){
+  try{
+    const users = await apiFetch('/users/?limit=20');
+    allUsers = users;
+    const sel = document.getElementById('userSelect');
+    sel.innerHTML = '<option value="">— Pick a user —</option>' +
+      users.map(u => `<option value="${u.id}">${u.display_name || u.external_id} (${u.segment.replace(/_/g,' ')})</option>`).join('');
+  } catch(e){
+    document.getElementById('userSelect').innerHTML = '<option value="">API offline — start backend</option>';
+  }
+}
+
+async function onUserChange(){
+  const id = document.getElementById('userSelect').value;
+  if(!id){ currentUser = null; return; }
+  currentUser = allUsers.find(u => u.id === id);
+  if(!currentUser) return;
+
+  // update avatar
+  const initials = (currentUser.display_name || currentUser.external_id).slice(0,2).toUpperCase();
+  document.getElementById('avatarEl').textContent = initials;
+
+  // update stats panel
+  document.getElementById('statUserName').textContent = currentUser.display_name || currentUser.external_id;
+  document.getElementById('statUserId').textContent = currentUser.id.slice(0,20) + '...';
+  const segBadge = document.getElementById('statUserSegment');
+  const segColor = {high_engagement:'#4ade80',moderate_engagement:'#60a5fa',at_risk_churn:'#fb7185',new_user:'#a78bfa',returning:'#fbbf24'}[currentUser.segment] || '#8b8fa8';
+  segBadge.innerHTML = `<span style="background:${segColor}22;color:${segColor};padding:3px 10px;border-radius:20px;font-size:11px;font-family:'DM Mono',monospace;">${currentUser.segment.replace(/_/g,' ')}</span>`;
+
+  // reset nudge
+  currentNudgeLog = null;
+  document.getElementById('nudgeArea').innerHTML = `
+    <button class="get-nudge-btn" onclick="getNudge()">
+      <span>✦</span> Get personalized nudge
+    </button>`;
+
+  // load arm states
+  loadArmStates();
+
+  // random streak
+  updateStreak(Math.floor(Math.random() * 12) + 1);
+
+  // re-seed events quietly
+  seedUserEvents(id);
+}
+
+async function seedUserEvents(userId){
+  try{
+    await apiFetch('/events/', {
+      method:'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        event_type: 'session_start',
+        event_source: 'habitflow_app',
+        properties: {app:'HabitFlow', ts: new Date().toISOString()},
+      })
+    });
+  } catch(e){}
+}
+
+// ── Get nudge ──
+async function getNudge(){
+  if(!currentUser){ showToast('Pick a user first', 'info'); return; }
+
+  document.getElementById('nudgeArea').innerHTML = `
+    <div class="nudge-loading loading-shimmer">✦ NudgeOps selecting best strategy...</div>`;
+
+  try{
+    const result = await apiFetch('/bandit/nudge', {
+      method: 'POST',
+      body: JSON.stringify({user_id: currentUser.id, context: {}})
+    });
+
+    currentNudgeLog = result;
+
+    // update last selection panel
+    document.getElementById('lastSelBlock').style.display = '';
+    document.getElementById('lastSelType').textContent = result.intervention_type.replace(/_/g,' ');
+    document.getElementById('lastSelReason').textContent = '→ ' + result.selection_reason;
+
+    renderNudgeCard(result);
+    loadArmStates();
+
+  } catch(e){
+    document.getElementById('nudgeArea').innerHTML = `
+      <div class="nudge-empty">⚠ Could not reach NudgeOps API<br><small>Make sure backend is running on :8000</small></div>
+      <button class="get-nudge-btn" style="margin-top:10px;" onclick="getNudge()">Retry</button>`;
+  }
+}
+
+function renderNudgeCard(result){
+  const color = ARM_COLORS[result.intervention_type] || '#a78bfa';
+  document.getElementById('nudgeArea').innerHTML = `
+    <div class="nudge-card fade-in">
+      <div class="nudge-card-top">
+        <span class="nudge-badge">AI Nudge</span>
+        <span class="nudge-strategy">${result.intervention_type.replace(/_/g,' ')}</span>
+      </div>
+      <div class="nudge-message">${result.message}</div>
+      <div class="nudge-actions">
+        <button class="nudge-btn nudge-btn-yes" onclick="sendFeedback('completed')">✓ Done it!</button>
+        <button class="nudge-btn nudge-btn-maybe" onclick="sendFeedback('engaged')">👀 Maybe</button>
+        <button class="nudge-btn nudge-btn-no" onclick="sendFeedback('dismissed')">✕ Skip</button>
+      </div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px;">
+      <button onclick="sendFeedback('ignored')" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:6px;font-size:11px;cursor:pointer;">Ignore</button>
+      <button onclick="sendFeedback('negative')" style="flex:1;background:transparent;border:1px solid rgba(251,113,133,0.2);color:var(--coral);border-radius:8px;padding:6px;font-size:11px;cursor:pointer;">Not helpful</button>
+    </div>`;
+}
+
+// ── Submit feedback ──
+async function sendFeedback(signal){
+  if(!currentNudgeLog || !currentUser) return;
+
+  const itype = currentNudgeLog.intervention_type;
+  const rewardMap = {completed:1.0, engaged:0.5, ignored:0.0, dismissed:-0.2, negative:-0.5};
+  const reward = rewardMap[signal];
+
+  // Optimistic UI
+  document.getElementById('nudgeArea').innerHTML = `
+    <div class="nudge-loading loading-shimmer">Updating bandit...</div>`;
+
+  try{
+    await apiFetch('/bandit/feedback', {
+      method:'POST',
+      body: JSON.stringify({
+        log_id: currentNudgeLog.log_id,
+        user_id: currentUser.id,
+        feedback_signal: signal,
+      })
+    });
+
+    // Add to feedback log
+    addFeedbackEntry(signal, itype, reward);
+
+    // Show toast
+    const msgs = {
+      completed: '🎉 Bandit updated — completion reward!',
+      engaged:   '👀 Noted — partial reward logged',
+      ignored:   '— Ignored. Bandit adjusting...',
+      dismissed: '✕ Skipped. Bandit learns.',
+      negative:  '⚠ Negative signal sent. Strategy may shift.',
+    };
+    showToast(msgs[signal] || 'Feedback recorded', signal === 'completed' ? 'success' : 'info');
+
+    // Refresh arms
+    await loadArmStates();
+    await loadMetrics();
+
+    // Offer next nudge
+    document.getElementById('nudgeArea').innerHTML = `
+      <button class="get-nudge-btn" onclick="getNudge()">
+        <span>✦</span> Get next nudge
+      </button>`;
+    currentNudgeLog = null;
+
+  } catch(e){
+    showToast('API error — check backend', 'info');
+  }
+}
+
+// ── Arm states ──
+async function loadArmStates(){
+  if(!currentUser) return;
+  try{
+    const states = await apiFetch(`/bandit/state/${currentUser.id}`);
+    renderArmBars(states);
+  } catch(e){}
+}
+
+function renderArmBars(states){
+  if(!states || !states.length){
+    document.getElementById('armBars').innerHTML = '<div class="empty-log">No arm data</div>';
+    return;
+  }
+  const sorted = [...states].sort((a,b) => b.estimated_success_prob - a.estimated_success_prob);
+  const maxProb = sorted[0].estimated_success_prob;
+
+  document.getElementById('armBars').innerHTML = sorted.map((s,i) => {
+    const prob = s.estimated_success_prob;
+    const pct = maxProb > 0 ? (prob / maxProb) * 100 : 0;
+    const color = ARM_COLORS[s.intervention_type] || '#8b8fa8';
+    const name = s.intervention_type.replace(/_/g,' ');
+    const isBest = i === 0;
+    return `
+      <div class="arm-row ${isBest ? 'best' : ''}">
+        <div class="arm-name" title="${name}">${name}</div>
+        <div class="arm-bar-wrap">
+          <div class="arm-bar" style="width:${pct}%;background:${color};"></div>
+        </div>
+        <div class="arm-prob" style="color:${isBest ? color : ''}">${(prob*100).toFixed(0)}%</div>
+        <div class="arm-pulls">${s.n_pulls}p</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Metrics polling ──
+function startMetricsPolling(){
+  loadMetrics();
+  metricsInterval = setInterval(loadMetrics, 8000);
+}
+
+async function loadMetrics(){
+  try{
+    const m = await apiFetch('/monitoring/metrics');
+    document.getElementById('mTotal').textContent = m.total_interventions_all_time?.toLocaleString() ?? '—';
+    document.getElementById('m24h').textContent = m.interventions_last_24h ?? '—';
+    document.getElementById('mCompletion').textContent = m.completion_rate_7d != null ? (m.completion_rate_7d*100).toFixed(1)+'%' : '—';
+    document.getElementById('mNegative').textContent = m.negative_rate_7d != null ? (m.negative_rate_7d*100).toFixed(1)+'%' : '—';
+    checkAPI();
+  } catch(e){}
+}
+
+// ── Feedback log ──
+function addFeedbackEntry(signal, itype, reward){
+  feedbackHistory.unshift({signal, itype, reward, ts: new Date()});
+  renderFeedbackLog();
+}
+
+function renderFeedbackLog(){
+  const log = document.getElementById('feedbackLog');
+  if(!feedbackHistory.length){
+    log.innerHTML = '<div class="empty-log">No feedback yet</div>';
+    return;
+  }
+  log.innerHTML = feedbackHistory.slice(0,12).map(f => {
+    const rewardClass = f.reward > 0 ? 'pos' : f.reward < 0 ? 'neg' : 'zero';
+    const rewardStr = f.reward > 0 ? '+'+f.reward.toFixed(1) : f.reward.toFixed(1);
+    return `
+      <div class="feedback-entry fade-in">
+        <span class="fb-signal fb-${f.signal}">${f.signal}</span>
+        <span class="fb-type">${f.itype.replace(/_/g,' ')}</span>
+        <span class="fb-reward ${rewardClass}">${rewardStr}</span>
+      </div>`;
+  }).join('');
+}
+
+// ── Toast ──
+function showToast(msg, type='info'){
+  const t = document.getElementById('phoneToast');
+  t.textContent = msg;
+  t.className = `phone-toast ${type} show`;
+  setTimeout(() => { t.className = `phone-toast ${type}`; }, 2800);
+}
+
+// ── API helper ──
+async function apiFetch(path, opts={}){
+  const res = await fetch(API + path, {
+    headers: {'Content-Type':'application/json'},
+    ...opts,
+  });
+  if(!res.ok) throw new Error(res.statusText);
+  return res.json();
+}
+</script>
+</body>
+</html>
