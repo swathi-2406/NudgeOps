@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const http = axios.create({ baseURL: 'http://localhost:8000/api/v1/habitflow', timeout: 10000 })
+const http = axios.create({ baseURL: 'https://nudgeops-api.onrender.com/api/v1/habitflow', timeout: 10000 })
 
 http.interceptors.request.use(cfg => {
   const token = localStorage.getItem('hf_token')
