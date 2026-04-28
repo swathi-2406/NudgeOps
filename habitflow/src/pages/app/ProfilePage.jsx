@@ -118,10 +118,6 @@ export default function ProfilePage() {
           <div style={{ fontSize:12, color:'var(--text2)' }}>
             Your nudges are personalized using a contextual Thompson Sampling bandit that learns your response patterns over time.
           </div>
-          <a href="http://localhost:8000/docs" target="_blank"
-            style={{ fontSize:12, color:'var(--accent)', display:'block', marginTop:6 }}>
-            View API docs →
-          </a>
         </div>
 
         <button className="btn btn-danger btn-full" onClick={doLogout}>Sign out</button>
