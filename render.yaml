@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: nudgeops-api
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nudgeops-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        value: https://habitflow.netlify.app,https://nudgeops.netlify.app
+      - key: REDIS_URL
+        value: redis://localhost:6379/0
+
+databases:
+  - name: nudgeops-db
+    plan: free
+    databaseName: nudgeops
+    user: nudgeops

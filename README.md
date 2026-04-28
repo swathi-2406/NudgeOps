@@ -181,3 +181,31 @@ MAX_SINGLE_INTERVENTION_SHARE=0.60
 ---
 
 Built by [Your Name] · NudgeOps v1.0.0
+
+---
+
+## HabitFlow — Full Habit Tracker App
+
+A fully functional mobile-style habit tracking app built on top of NudgeOps.
+
+**Start it:**
+```bash
+# Windows
+scripts\start_habitflow.bat
+
+# Mac/Linux
+./scripts/start_habitflow.sh
+```
+
+Then open **http://localhost:3001**
+
+See `habitflow/README.md` for full documentation.
+
+### Screens
+- **Login / Signup** — JWT auth, persistent sessions
+- **Home** — Daily habits, completion toggle, streak, AI nudge inline
+- **Nudge Center** — Request nudge, submit feedback, view history
+- **Stats** — 30-day heatmap, weekly chart, streak records, nudge effectiveness
+- **Social** — Follow users, activity feed with likes, discover people
+- **Profile** — Edit name/bio/avatar color, sign out
+- **Habit Detail** — Per-habit completion chart and history

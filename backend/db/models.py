@@ -241,3 +241,136 @@ class MonitoringSnapshot(Base):
     __table_args__ = (
         Index("ix_monitoring_type_created", "snapshot_type", "created_at"),
     )
+
+
+# ═══════════════════════════════════════════════
+# HabitFlow App Models
+# ═══════════════════════════════════════════════
+
+class HabitCategory(Base):
+    __tablename__ = "habit_categories"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    color: Mapped[str] = mapped_column(String(20), default="#6ee7b7")
+    icon: Mapped[str] = mapped_column(String(10), default="📌")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Habit(Base):
+    __tablename__ = "habits"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    category_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("habit_categories.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    icon: Mapped[str] = mapped_column(String(10), default="✅")
+    color: Mapped[str] = mapped_column(String(20), default="#6ee7b7")
+    frequency: Mapped[str] = mapped_column(String(20), default="daily")  # daily, weekly, custom
+    target_days: Mapped[str] = mapped_column(Text, default="[0,1,2,3,4,5,6]")  # JSON days of week
+    reminder_time: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)  # HH:MM
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    completions: Mapped[List["HabitCompletion"]] = relationship(back_populates="habit", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_habits_user_id", "user_id"),
+        Index("ix_habits_active", "is_active"),
+    )
+
+
+class HabitCompletion(Base):
+    __tablename__ = "habit_completions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    habit_id: Mapped[str] = mapped_column(String(36), ForeignKey("habits.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    completed_date: Mapped[str] = mapped_column(String(10), nullable=False)  # YYYY-MM-DD
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    mood: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 1-5
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    habit: Mapped["Habit"] = relationship(back_populates="completions")
+
+    __table_args__ = (
+        UniqueConstraint("habit_id", "completed_date", name="uq_habit_completion_date"),
+        Index("ix_habit_completions_user_date", "user_id", "completed_date"),
+    )
+
+
+class UserStreak(Base):
+    __tablename__ = "user_streaks"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    current_streak: Mapped[int] = mapped_column(Integer, default=0)
+    longest_streak: Mapped[int] = mapped_column(Integer, default=0)
+    total_completions: Mapped[int] = mapped_column(Integer, default=0)
+    last_completion_date: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AppUser(Base):
+    """Extended user profile for HabitFlow app (auth + profile)."""
+    __tablename__ = "app_users"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    nudgeops_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    avatar_color: Mapped[str] = mapped_column(String(20), default="#6ee7b7")
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_profile_public: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_app_users_username", "username"),
+        Index("ix_app_users_email", "email"),
+    )
+
+
+class Follow(Base):
+    """Social following between users."""
+    __tablename__ = "follows"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    follower_id: Mapped[str] = mapped_column(String(36), ForeignKey("app_users.id", ondelete="CASCADE"), nullable=False)
+    following_id: Mapped[str] = mapped_column(String(36), ForeignKey("app_users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("follower_id", "following_id", name="uq_follow"),
+        Index("ix_follows_follower", "follower_id"),
+        Index("ix_follows_following", "following_id"),
+    )
+
+
+class ActivityFeed(Base):
+    """Social activity feed entries."""
+    __tablename__ = "activity_feed"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    app_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("app_users.id", ondelete="CASCADE"), nullable=False)
+    activity_type: Mapped[str] = mapped_column(String(50), nullable=False)  # habit_completed, streak_milestone, joined
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    meta_data: Mapped[str] = mapped_column(Text, default="{}")
+    likes_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_activity_feed_user", "app_user_id"),
+        Index("ix_activity_feed_created", "created_at"),
+    )
+
+
+class ActivityLike(Base):
+    __tablename__ = "activity_likes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    activity_id: Mapped[str] = mapped_column(String(36), ForeignKey("activity_feed.id", ondelete="CASCADE"), nullable=False)
+    app_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("app_users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("activity_id", "app_user_id", name="uq_activity_like"),
+    )

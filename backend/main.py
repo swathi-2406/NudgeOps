@@ -14,8 +14,10 @@ from core.logging import configure_logging
 from db.database import engine, Base
 from db.seed import seed_initial_data
 from api.routes import users, events, interventions, bandit, policies, experiments, monitoring, features, audit
+from api.routes import habitflow
 from api.middleware.logging import LoggingMiddleware
 from api.middleware.metrics import MetricsMiddleware
+from api.middleware.rate_limit import RateLimitMiddleware
 
 configure_logging()
 logger = structlog.get_logger(__name__)
@@ -43,20 +45,36 @@ app = FastAPI(
     ),
     version=settings.VERSION,
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
+    redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
 )
 
-app.add_middleware(CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# ── Middleware (order matters — outermost first) ──────────────────────────────
+
+# CORS — must be first
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Rate limiting
+app.add_middleware(RateLimitMiddleware)
+
+# Compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Observability
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
 
+# ── Prometheus metrics ────────────────────────────────────────────────────────
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
+# ── Routes ───────────────────────────────────────────────────────────────────
 app.include_router(users.router,         prefix="/api/v1/users",         tags=["Users"])
 app.include_router(events.router,        prefix="/api/v1/events",        tags=["Events"])
 app.include_router(interventions.router, prefix="/api/v1/interventions", tags=["Interventions"])
@@ -66,13 +84,23 @@ app.include_router(experiments.router,   prefix="/api/v1/experiments",   tags=["
 app.include_router(monitoring.router,    prefix="/api/v1/monitoring",    tags=["Monitoring"])
 app.include_router(features.router,      prefix="/api/v1/features",      tags=["Feature Store"])
 app.include_router(audit.router,         prefix="/api/v1/audit",         tags=["Audit Logs"])
+app.include_router(habitflow.router,     prefix="/api/v1/habitflow",     tags=["HabitFlow App"])
 
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    return {"status": "healthy", "version": settings.VERSION, "environment": settings.ENVIRONMENT}
+    return {
+        "status": "healthy",
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+    }
 
 
 @app.get("/", tags=["Root"])
 async def root():
-    return {"name": "NudgeOps API", "version": settings.VERSION, "docs": "/docs", "metrics": "/metrics"}
+    return {
+        "name": "NudgeOps API",
+        "version": settings.VERSION,
+        "docs": "/docs",
+        "metrics": "/metrics",
+    }

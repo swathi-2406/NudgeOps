@@ -53,3 +53,8 @@ celerybeat.pid
 
 # Redis dump
 dump.rdb
+
+# HabitFlow
+habitflow/node_modules/
+habitflow/dist/
+habitflow/.vite/
