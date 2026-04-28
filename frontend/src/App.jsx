@@ -75,7 +75,7 @@ function Layout({ children }) {
             {sidebarOpen ? <X size={18}/> : <Menu size={18}/>}
           </button>
           <span style={{fontFamily:'var(--font-mono)',fontSize:12,color:'var(--text-2)'}}>
-            api: localhost:8000 · docs: /docs
+            api: nudgeops-api.onrender.com · docs: /docs
           </span>
         </header>
         <main>{children}</main>
