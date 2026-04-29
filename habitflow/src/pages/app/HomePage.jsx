@@ -29,9 +29,9 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-  loadHabits()
-  autoNudge()
-}, [loadHabits])
+    loadHabits()
+    autoNudge()
+  }, [loadHabits])
 
   const toggleHabit = async (habit) => {
     if (habit.completed_today) {
@@ -51,26 +51,37 @@ export default function HomePage() {
     }
   }
 
-  const getNudge = async () => {
-  setNudgeLoading(true)
-  try {
-    const data = await nudgeApi.request()
-    setNudgeData(data)
-  } catch (e) { toast('Could not get nudge', 'error') }
-  finally { setNudgeLoading(false) }
-}
+  const deleteHabit = async (id) => {
+    if (!window.confirm('Delete this habit? This cannot be undone.')) return
+    try {
+      await habitsApi.delete(id)
+      setHabitList(p => p.filter(h => h.id !== id))
+      toast('Habit deleted', 'success')
+    } catch (e) {
+      toast('Error deleting habit', 'error')
+    }
+  }
 
-const autoNudge = async () => {
-  const lastNudgeDate = localStorage.getItem('hf_last_nudge_date')
-  const today = format(new Date(), 'yyyy-MM-dd')
-  if (lastNudgeDate === today) return
-  await new Promise(r => setTimeout(r, 1500))
-  try {
-    const data = await nudgeApi.request()
-    setNudgeData(data)
-    localStorage.setItem('hf_last_nudge_date', today)
-  } catch (e) {}
-}
+  const getNudge = async () => {
+    setNudgeLoading(true)
+    try {
+      const data = await nudgeApi.request()
+      setNudgeData(data)
+    } catch (e) { toast('Could not get nudge', 'error') }
+    finally { setNudgeLoading(false) }
+  }
+
+  const autoNudge = async () => {
+    const lastNudgeDate = localStorage.getItem('hf_last_nudge_date')
+    const today = format(new Date(), 'yyyy-MM-dd')
+    if (lastNudgeDate === today) return
+    await new Promise(r => setTimeout(r, 1500))
+    try {
+      const data = await nudgeApi.request()
+      setNudgeData(data)
+      localStorage.setItem('hf_last_nudge_date', today)
+    } catch (e) {}
+  }
 
   const onFeedback = async (signal) => {
     if (!nudgeData) return
@@ -87,45 +98,47 @@ const autoNudge = async () => {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ padding:'20px 20px 0', marginBottom:20 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+      <div style={{ padding: '20px 20px 0', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize:13, color:'var(--text2)', marginBottom:2 }}>{dayName}, {dateStr}</div>
-            <h1 style={{ fontFamily:'var(--font-display)', fontSize:24, fontWeight:800 }}>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>{dayName}, {dateStr}</div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800 }}>
               Hey, {user?.display_name?.split(' ')[0]} 👋
             </h1>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'6px 12px' }}>
-            <span style={{ fontSize:16 }}>🔥</span>
-            <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:18 }}>{streak}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '6px 12px' }}>
+            <span style={{ fontSize: 16 }}>🔥</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>{streak}</span>
           </div>
         </div>
 
         {/* Progress bar */}
         {totalCount > 0 && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--text2)', marginBottom:6 }}>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 6 }}>
               <span>{doneCount}/{totalCount} habits today</span>
-              <span>{Math.round(doneCount/totalCount*100)}%</span>
+              <span>{Math.round(doneCount / totalCount * 100)}%</span>
             </div>
-            <div style={{ height:6, background:'var(--bg2)', borderRadius:3, overflow:'hidden' }}>
-              <div style={{ height:'100%', background:'var(--accent)', borderRadius:3, width:`${totalCount > 0 ? doneCount/totalCount*100 : 0}%`, transition:'width 0.4s ease' }} />
+            <div style={{ height: 6, background: 'var(--bg2)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 3, width: `${totalCount > 0 ? doneCount / totalCount * 100 : 0}%`, transition: 'width 0.4s ease' }} />
             </div>
           </div>
         )}
       </div>
 
       {/* Nudge section */}
-      <div style={{ padding:'0 20px', marginBottom:20 }}>
+      <div style={{ padding: '0 20px', marginBottom: 20 }}>
         {nudgeData ? (
           <NudgeCard nudge={nudgeData} onFeedback={onFeedback} />
         ) : (
           <button onClick={getNudge} disabled={nudgeLoading}
-            style={{ width:'100%', padding:'14px', borderRadius:16, border:'1.5px dashed var(--border2)',
-                     background:'transparent', cursor:'pointer', color:'var(--accent)',
-                     fontFamily:'var(--font-display)', fontSize:14, fontWeight:700,
-                     display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-            {nudgeLoading ? <><span className="spinner"/> Getting your nudge...</> : <>✦ Get AI nudge</>}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 16, border: '1.5px dashed var(--border2)',
+              background: 'transparent', cursor: 'pointer', color: 'var(--accent)',
+              fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+            }}>
+            {nudgeLoading ? <><span className="spinner" /> Getting your nudge...</> : <>✦ Get AI nudge</>}
           </button>
         )}
       </div>
@@ -136,33 +149,67 @@ const autoNudge = async () => {
         <button className="btn btn-sm btn-ghost" onClick={() => setShowAdd(true)}>+ Add</button>
       </div>
 
-      <div style={{ padding:'0 20px' }}>
+      <div style={{ padding: '0 20px' }}>
         {loading ? (
           <div className="loading"><span className="spinner" /></div>
         ) : habitList.length === 0 ? (
           <div className="empty-state">
             <div className="icon">🌱</div>
-            <div style={{ fontWeight:600, marginBottom:4 }}>No habits yet</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>No habits yet</div>
             <div>Add your first habit to get started</div>
-            <button className="btn btn-primary btn-sm" style={{ marginTop:16 }} onClick={() => setShowAdd(true)}>Add habit</button>
+            <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>Add habit</button>
           </div>
         ) : (
           habitList.map(h => (
-            <div key={h.id} className={`habit-item ${h.completed_today ? 'done' : ''}`} onClick={() => toggleHabit(h)}>
-              <div className="habit-icon-wrap" style={{ background: h.color + '22' }}>{h.icon}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontWeight:600, fontSize:14, textDecoration: h.completed_today ? 'line-through' : 'none', color: h.completed_today ? 'var(--text2)' : 'var(--text)' }}>{h.name}</div>
-                {h.description && <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>{h.description}</div>}
-              </div>
-              <div className="habit-check">
-                {h.completed_today && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            <div key={h.id} style={{ position: 'relative', marginBottom: 8 }}>
+              <div
+                className={`habit-item ${h.completed_today ? 'done' : ''}`}
+                style={{ marginBottom: 0 }}
+                onClick={() => toggleHabit(h)}
+              >
+                <div className="habit-icon-wrap" style={{ background: h.color + '22' }}>{h.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontWeight: 600, fontSize: 14,
+                    textDecoration: h.completed_today ? 'line-through' : 'none',
+                    color: h.completed_today ? 'var(--text2)' : 'var(--text)'
+                  }}>
+                    {h.name}
+                  </div>
+                  {h.description && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>{h.description}</div>
+                  )}
+                </div>
+                <div className="habit-check">
+                  {h.completed_today && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteHabit(h.id) }}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--text3)',
+                    cursor: 'pointer', padding: '4px 8px', fontSize: 20,
+                    lineHeight: 1, flexShrink: 0
+                  }}
+                  title="Delete habit"
+                >
+                  ×
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
 
-      {showAdd && <AddHabitModal onClose={() => setShowAdd(false)} onSaved={(h) => { setHabitList(p => [...p, h]); setShowAdd(false) }} />}
+      {showAdd && (
+        <AddHabitModal
+          onClose={() => setShowAdd(false)}
+          onSaved={(h) => { setHabitList(p => [...p, h]); setShowAdd(false) }}
+        />
+      )}
     </div>
   )
 }
