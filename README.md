@@ -212,11 +212,3 @@ Cold-start guard: strategies above manipulativeness threshold 7 are suppressed u
 **ML:** Thompson Sampling · UCB1 · ε-Greedy · Contextual LinUCB · Beta-Bernoulli conjugate updates · two-sample t-test · Cohen's d
 
 **Infrastructure:** Render · Netlify · PWA (Web App Manifest + Service Worker)
-
----
-
-## 👩‍💻 Built by
-
-**Swathi Gudivada** — [GitHub](https://github.com/swathi-2406) · [LinkedIn](https://linkedin.com/in/swathi-gudivada)
-
-*Open to AI Engineer, MLOps Engineer, and Full-Stack roles.*
