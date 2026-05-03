@@ -1,211 +1,222 @@
-# ⬡ NudgeOps — MLOps Platform for Personalized Behavioral Intervention Policies
+# ⬡ NudgeOps × HabitFlow
 
-An AI-driven behavioral intervention platform that learns which motivational strategy works best for each individual user, updating policies over time using multi-armed bandit algorithms and feedback signals.
+> An AI-powered habit tracker that learns which motivational strategy works best for *you* — backed by a full MLOps platform built for personalized behavioral intervention.
 
-> For one user, streaks work. For another, loss framing. For another, dark humor.  
-> NudgeOps learns this — and adapts.
+**Not all motivation is equal.** Streaks work for some people. Loss framing works for others. Dark humor works for others. Most apps treat everyone the same. NudgeOps doesn't.
 
 ---
 
-## Architecture
+## 🔗 Live Links
+
+| | URL |
+|---|---|
+| 📱 **HabitFlow App** | [habitflow-beta.netlify.app](https://habitflow-beta.netlify.app) |
+| 📊 **NudgeOps MLOps Dashboard** | [nudgeops-dashboard.netlify.app](https://nudgeops-dashboard.netlify.app) |
+| ⚡ **Backend API** | [nudgeops-api.onrender.com](https://nudgeops-api.onrender.com) |
+| 📖 **API Docs** | Available in development mode only |
+
+**Install HabitFlow on your phone:**
+- iPhone → Open in Safari → Share → "Add to Home Screen"
+- Android → Open in Chrome → Menu → "Add to Home Screen"
+
+---
+
+## 🧠 How the AI works
+
+Every user has **10 bandit arms** — one per motivational strategy. Each arm is a Beta(α, β) distribution representing the system's belief about how effective that strategy is for that specific person.
+
+```
+New user — all arms start equal:
+streak_tracker:          Beta(1, 1)  → 50% estimated success
+dark_humor_reminder:     Beta(1, 1)  → 50% estimated success
+loss_framing:            Beta(1, 1)  → 50% estimated success
+...
+```
+
+**At nudge selection time — Thompson Sampling:**
+1. Sample one value from each arm's Beta distribution
+2. Pick the arm with the highest sample
+3. Deliver that intervention to the user
+
+**When the user responds:**
+
+| Feedback | Reward | Update |
+|---|---|---|
+| Done it! | +1.0 | α increases strongly |
+| Maybe | +0.5 | α increases slightly |
+| Ignore | 0.0 | No change |
+| Skip | −0.2 | β increases |
+| Not helpful | −0.5 | β increases strongly |
+
+**After 15–20 interactions:**
+```
+streak_tracker:      Beta(14, 3)  → 82% — this user loves streaks ✓
+loss_framing:        Beta(2,  9)  → 18% — this user hates guilt trips ✗
+dark_humor_reminder: Beta(6,  5)  → 55% — this user is neutral
+```
+
+The bandit has learned this user's motivational style — without any offline training, no GPU, no dataset. Pure online Bayesian updating.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   User Interfaces                    │
+│  HabitFlow PWA          NudgeOps Dashboard           │
+│  (React + Vite)         (React + Vite)               │
+│  habitflow-beta         nudgeops-dashboard           │
+│  .netlify.app           .netlify.app                 │
+└────────────────┬───────────────────┬────────────────┘
+                 │                   │
+                 ▼                   ▼
+┌─────────────────────────────────────────────────────┐
+│              FastAPI Backend (Render)                │
+│  nudgeops-api.onrender.com                          │
+│                                                     │
+│  /api/v1/habitflow/   — HabitFlow app routes        │
+│  /api/v1/bandit/      — Bandit engine               │
+│  /api/v1/policies/    — Policy registry             │
+│  /api/v1/experiments/ — A/B testing                 │
+│  /api/v1/monitoring/  — System metrics              │
+│  /api/v1/audit/       — Audit logs                  │
+└──────────┬──────────────────────────────────────────┘
+           │
+     ┌─────┴──────┐
+     ▼            ▼
+PostgreSQL      Redis
+(Render free)   (feature cache)
+```
+
+---
+
+## ⚙️ MLOps Features
+
+| Feature | Implementation |
+|---|---|
+| **Contextual Bandit** | Thompson Sampling, UCB1, ε-Greedy, LinUCB |
+| **Feature Store** | 14 behavioral features · 30-day rolling window · Redis TTL cache |
+| **User Embeddings** | 32-dim vectors · cosine similarity nearest-neighbor |
+| **Offline Policy Eval** | Reward CI · completion rate · health score |
+| **A/B Testing** | Two-sample t-test · Cohen's d · p-value · winner detection |
+| **Policy Registry** | Versioned · promote · rollback · shadow mode |
+| **Retraining Pipeline** | Celery beat · triggers on feedback accumulation |
+| **Failure Detection** | Rolling reward window · per-arm failure flagging |
+| **Fairness Constraints** | No strategy > 60% of nudges per user |
+| **Audit Logging** | Every system action logged with actor + outcome |
+| **Rate Limiting** | Per-IP limits on signup, login, nudge requests |
+| **Prometheus Metrics** | Request count · latency histograms |
+
+---
+
+## 📱 HabitFlow — App Features
+
+- **Auth** — JWT signup/login, persistent sessions, bcrypt passwords
+- **Habits** — Create with custom icon, color, frequency, reminders, categories
+- **Daily tracking** — Tap to complete, streak calculation, progress bar
+- **AI Nudges** — Auto-delivered on app open (once/day), 5-signal feedback
+- **Stats** — 30-day heatmap, weekly bar chart, nudge effectiveness metrics
+- **Social** — Follow users, activity feed, likes, public profiles, discovery
+- **PWA** — Installable on iOS and Android, offline support via service worker
+
+---
+
+## 🗂️ Project Structure
 
 ```
 nudgeops/
-├── backend/                  # FastAPI + SQLite + Celery
-│   ├── api/routes/           # REST endpoints (users, bandit, policies, experiments, monitoring, audit)
+├── backend/                    # FastAPI + SQLAlchemy + Celery
+│   ├── api/routes/             # 10 route modules (users, bandit, policies...)
 │   ├── ml/
-│   │   ├── bandit/           # Thompson Sampling, UCB, ε-Greedy, Contextual LinUCB
-│   │   ├── embeddings/       # User behavioral embeddings + feature store
-│   │   └── evaluation/       # Offline policy eval + A/B test statistical analysis
-│   ├── services/             # Bandit orchestration, monitoring, audit
-│   └── tasks/                # Celery background jobs (retraining, snapshots, embeddings)
-├── frontend/                 # React + Vite dashboard
-│   └── src/pages/            # Dashboard, Users, Interventions, A/B Tests, Policies, Monitoring, Audit
-├── scripts/                  # Dev startup + demo data seeder
-└── docker-compose.yml        # Redis + Backend + Frontend + Worker
+│   │   ├── bandit/engine.py    # Thompson Sampling, UCB, ε-Greedy, LinUCB
+│   │   ├── embeddings/         # Feature store + 32-dim user embeddings
+│   │   └── evaluation/         # Offline policy eval + A/B test analysis
+│   ├── services/               # Bandit orchestration, monitoring, audit
+│   ├── tasks/celery_app.py     # 5 scheduled background jobs
+│   └── db/models.py            # 17 SQLAlchemy models
+│
+├── habitflow/                  # React + Vite — user-facing app
+│   └── src/pages/              # Login, Home, Nudge, Stats, Social, Profile
+│
+├── frontend/                   # React + Vite — MLOps dashboard
+│   └── src/pages/              # Dashboard, Users, Interventions, Monitoring
+│
+└── scripts/
+    └── demo_seed.py            # Seeds 8 demo users with synthetic data
 ```
 
 ---
 
-## Quick Start (Local — no Docker needed)
+## 🚀 Run Locally
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Redis running locally: `redis-server` (or `brew install redis && redis-server`)
+**Prerequisites:** Python 3.10+, Node.js 18+, Redis
 
-### 1. Backend
 ```bash
+# 1. Backend
 cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python ../scripts/demo_seed.py  # seed demo users + data
+python ../scripts/demo_seed.py
 uvicorn main:app --reload --port 8000
-```
 
-### 2. Frontend
-```bash
+# 2. HabitFlow app
+cd habitflow
+npm install
+npm run dev        # → http://localhost:3001
+
+# 3. NudgeOps dashboard
 cd frontend
 npm install
-npm run dev                     # starts at http://localhost:3000
-```
-
-### 3. One-command startup (Linux/Mac)
-```bash
-chmod +x scripts/start_dev.sh
-./scripts/start_dev.sh
-```
-
-### 4. Windows
-```bat
-scripts\start_dev.bat
-```
-
-### 5. With Docker (Redis only)
-```bash
-docker run -d -p 6379:6379 redis:7-alpine
-# then follow steps 1 + 2 above
+npm run dev        # → http://localhost:3000
 ```
 
 ---
 
-## MLOps Features
-
-| Feature | Implementation |
-|---------|---------------|
-| **Event logging pipeline** | `POST /api/v1/events/` · batch ingest · background cache invalidation |
-| **Feature store** | Per-user behavioral features · Redis cache · SQLite persistence |
-| **Contextual bandit** | Thompson Sampling, UCB, ε-Greedy, Contextual LinUCB |
-| **User embeddings** | 32-dim behavioral vectors · cosine similarity nearest-neighbor |
-| **Offline policy eval** | Completion/engagement/reward metrics · confidence intervals |
-| **A/B testing** | Two-sample t-test · Cohen's d · p-value · winner detection |
-| **Policy registry** | Versioned policies · promote · rollback · shadow mode |
-| **Retraining pipeline** | Celery beat scheduler · triggered on feedback accumulation |
-| **Failure detection** | Rolling reward window · per-arm failure flagging · recovery |
-| **Fairness checks** | Per-user intervention distribution caps (max 60% single type) |
-| **Audit logs** | Every system action logged with actor, resource, outcome |
-| **Prometheus metrics** | `/metrics` endpoint · request count/latency counters |
-
----
-
-## API Reference
-
-Full interactive docs at `http://localhost:8000/docs`
-
-### Key Endpoints
-
-```
-POST /api/v1/bandit/nudge          # Select best intervention for a user
-POST /api/v1/bandit/feedback       # Record user response (reward signal)
-GET  /api/v1/bandit/state/{uid}    # View per-user arm states
-
-POST /api/v1/events/               # Ingest single event
-POST /api/v1/events/batch          # Ingest event batch
-
-GET  /api/v1/monitoring/metrics    # System-wide platform metrics
-GET  /api/v1/monitoring/fairness   # Fairness distribution check
-GET  /api/v1/policies/{id}/evaluate  # Offline policy evaluation
-
-POST /api/v1/experiments/          # Create A/B experiment
-POST /api/v1/experiments/{id}/start
-POST /api/v1/experiments/{id}/conclude
-GET  /api/v1/experiments/{id}/results
-
-GET  /api/v1/features/user/{uid}    # User feature vector
-POST /api/v1/features/user/{uid}/embedding  # Compute behavioral embedding
-GET  /api/v1/audit/                 # Human-readable audit trail
-```
-
----
-
-## Intervention Types
+## 🔬 Intervention Strategies
 
 | Strategy | Manipulativeness | Example |
-|----------|-----------------|---------|
-| Positive Reinforcement | 1/10 | "Amazing work! You completed 80% of your goal." |
-| Streak Tracker | 2/10 | "🔥 Day 7 streak! Don't break the chain." |
-| Dark Humor Reminder | 2/10 | "⚰️ You're not getting younger. Do the thing." |
+|---|---|---|
+| Positive Reinforcement | 1/10 | "Amazing work! You're 80% there this week." |
+| Streak Tracker | 2/10 | "🔥 Day 7! Don't break the chain." |
+| Dark Humor | 2/10 | "⚰️ You're not getting younger. Do the thing." |
+| Micro Challenge | 2/10 | "⚡ Just 5 minutes. Set a timer. Go." |
 | Implementation Intention | 2/10 | "When you finish lunch, you'll spend 10 mins on this." |
-| Micro Challenge | 2/10 | "⚡ Today's challenge: just 5 minutes." |
 | Public Accountability | 4/10 | "Your network saw you commit to this." |
 | Commitment Device | 5/10 | "You committed to this yesterday." |
 | Social Proof | 5/10 | "1,247 people like you finished this today." |
 | Loss Framing | 7/10 | "⚠️ You're losing 3 days of progress by skipping." |
 
-Fairness guard: no single strategy can exceed **60%** of nudges per user.
+Fairness guard: no single strategy exceeds **60%** of nudges per user.
+Cold-start guard: strategies above manipulativeness threshold 7 are suppressed until sufficient feedback is collected.
 
 ---
 
-## Background Jobs (Celery)
+## 🧪 Celery Background Jobs
 
 | Task | Schedule | Purpose |
-|------|----------|---------|
-| `take_monitoring_snapshot` | Every 15 min | Capture system metrics |
-| `refresh_all_embeddings` | Every 6h | Recompute user behavioral vectors |
-| `check_and_retrain` | Every 12h | Evaluate + retrain active policy if needed |
+|---|---|---|
+| `take_monitoring_snapshot` | Every 15 min | Capture system-wide metrics |
+| `refresh_all_embeddings` | Every 6h | Recompute behavioral vectors |
+| `check_and_retrain` | Every 12h | Evaluate + update active policy |
 | `analyze_running_experiments` | Every 3h | Auto-analyze A/B tests |
 | `detect_and_flag_failures` | On demand | Scan bandit arms for failure modes |
 
-Start the worker:
-```bash
-cd backend
-celery -A tasks.celery_app worker --loglevel=info
-celery -A tasks.celery_app beat --loglevel=info
-```
+---
+
+## 🛠️ Tech Stack
+
+**Backend:** FastAPI · SQLAlchemy (async) · PostgreSQL · Redis · Celery · NumPy · SciPy · scikit-learn · Prometheus · structlog · passlib
+
+**Frontend:** React 18 · Vite · React Router · Zustand · Recharts · Lucide · date-fns
+
+**ML:** Thompson Sampling · UCB1 · ε-Greedy · Contextual LinUCB · Beta-Bernoulli conjugate updates · two-sample t-test · Cohen's d
+
+**Infrastructure:** Render · Netlify · PWA (Web App Manifest + Service Worker)
 
 ---
 
-## Environment Variables
+## 👩‍💻 Built by
 
-```env
-DATABASE_URL=sqlite+aiosqlite:///./nudgeops.db
-REDIS_URL=redis://localhost:6379/0
-SECRET_KEY=your-secret-here
-ENVIRONMENT=development
+**Swathi Gudivada** — [GitHub](https://github.com/swathi-2406) · [LinkedIn](https://linkedin.com/in/swathi-gudivada)
 
-BANDIT_EPSILON=0.15
-BANDIT_UCB_ALPHA=1.0
-AB_TEST_MIN_SAMPLE_SIZE=30
-MAX_SINGLE_INTERVENTION_SHARE=0.60
-```
-
----
-
-## Tech Stack
-
-**Backend:** FastAPI · SQLAlchemy (async) · SQLite/aiosqlite · Redis · Celery · NumPy · SciPy · scikit-learn · Prometheus · structlog  
-**Frontend:** React 18 · Vite · React Router · Recharts · Lucide React  
-**ML:** Thompson Sampling · UCB1 · ε-Greedy · Contextual LinUCB · Beta-Bernoulli conjugate updates · two-sample t-test  
-
----
-
-Built by [Your Name] · NudgeOps v1.0.0
-
----
-
-## HabitFlow — Full Habit Tracker App
-
-A fully functional mobile-style habit tracking app built on top of NudgeOps.
-
-**Start it:**
-```bash
-# Windows
-scripts\start_habitflow.bat
-
-# Mac/Linux
-./scripts/start_habitflow.sh
-```
-
-Then open **http://localhost:3001**
-
-See `habitflow/README.md` for full documentation.
-
-### Screens
-- **Login / Signup** — JWT auth, persistent sessions
-- **Home** — Daily habits, completion toggle, streak, AI nudge inline
-- **Nudge Center** — Request nudge, submit feedback, view history
-- **Stats** — 30-day heatmap, weekly chart, streak records, nudge effectiveness
-- **Social** — Follow users, activity feed with likes, discover people
-- **Profile** — Edit name/bio/avatar color, sign out
-- **Habit Detail** — Per-habit completion chart and history
+*Open to AI Engineer, MLOps Engineer, and Full-Stack roles.*
